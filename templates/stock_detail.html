@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ company_name }} - 股票分析</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #f8f9fa; }
+        .card { box-shadow: 0 4px 8px 0 rgba(0,0,0,0.1); border: none; margin-bottom: 1.5rem; }
+        .conclusion-card {
+            border-radius: 8px;
+            padding: 20px;
+            color: white;
+            text-align: center;
+        }
+        .conclusion-buy { background-color: #28a745; }
+        .conclusion-sell { background-color: #dc3545; }
+        .conclusion-hold { background-color: #ffc107; color: #212529 !important; }
+    </style>
+</head>
+<body>
+    <div class="container mt-4">
+        <h1 class="mb-3">{{ company_name }} ({{ ticker }})</h1>
+
+        <div class="card mb-4">
+            <div class="card-header fw-bold">綜合結論</div>
+            <div class="card-body">
+                <div class="conclusion-card {{ conclusion.class }}">
+                    <h2 class="display-6">{{ conclusion.text }}</h2>
+                </div>
+                <div class="d-flex justify-content-between mt-3">
+                    <span class="text-success">買入評分: {{ conclusion.buy_score }}</span>
+                    <span class="text-danger">賣出評分: {{ conclusion.sell_score }}</span>
+                </div>
+                <hr>
+                <p class="fw-bold">主要判斷依據：</p>
+                <ul>
+                    {% for reason in conclusion.reasons %}
+                        <li>{{ reason }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header fw-bold">K線圖與技術分析</div>
+            <div class="card-body">
+                <div id="kline-chart" style="width:100%; height:500px;"></div>
+                <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+                <script>
+                    var graphData = {{ graph_json | safe }};
+                    Plotly.newPlot('kline-chart', graphData.data, graphData.layout, {responsive: true});
+                </script>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card mb-4">
+                    <div class="card-header fw-bold">最新K線型態分析</div>
+                    <div class="card-body">
+                        {% if kline_analysis %}
+                            <ul>
+                                {% for signal in kline_analysis %}
+                                    <li>{{ signal.signal }}: {{ signal.recommendation }}</li>
+                                {% endfor %}
+                            </ul>
+                        {% else %}
+                            <p>無可用K線型態分析。</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-6">
+                <div class="card mb-4">
+                    <div class="card-header fw-bold">基本面估值分析</div>
+                    <div class="card-body">
+                        {% if fundamental_analysis and fundamental_analysis is mapping %}
+                            <ul>
+                                {% for key, value in fundamental_analysis.items() %}
+                                    <li>{{ key }}: {{ value }}</li>
+                                {% endfor %}
+                            </ul>
+                        {% else %}
+                            <p>無可用基本面估值分析。</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="d-flex justify-content-between">
+            <a href="/" class="btn btn-secondary">回首頁</a>
+            <a href="/stock/{{ ticker }}" class="btn btn-primary">重新載入分析</a>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,7 @@
+flask
+pandas
+numpy
+yfinance
+plotly
+apscheduler
+pandas-ta
