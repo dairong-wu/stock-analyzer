@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ company_name }} ({{ ticker }})</title>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Noto Sans TC', Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+        h1, h2, h3 {
+            color: #2c3e50;
+            margin: 0 0 15px 0;
+            line-height: 1.4;
+        }
+        h1 {
+            font-size: 24px;
+            font-weight: 700;
+        }
+        h2 {
+            font-size: 20px;
+            font-weight: 600;
+        }
+        h3 {
+            font-size: 18px;
+            font-weight: 500;
+        }
+        .section {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .conclusion-buy {
+            color: #27ae60;
+            font-weight: bold;
+        }
+        .conclusion-sell {
+            color: #c0392b;
+            font-weight: bold;
+        }
+        .conclusion-hold {
+            color: #e67e22;
+            font-weight: bold;
+        }
+        .analysis-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        .analysis-table th, .analysis-table td {
+            border: 1px solid #e0e0e0;
+            padding: 12px;
+            text-align: left;
+        }
+        .analysis-table th {
+            background-color: #ecf0f1;
+            font-weight: bold;
+        }
+        .analysis-table tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        .pattern-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        .pattern-table th, .pattern-table td {
+            border: 1px solid #e0e0e0;
+            padding: 12px;
+            text-align: left;
+        }
+        .pattern-table th {
+            background-color: #e6f3ff;
+            font-weight: bold;
+        }
+        .pattern-table .bullish {
+            background-color: #e6ffe6;
+        }
+        .pattern-table .bearish {
+            background-color: #ffe6e6;
+        }
+        .button {
+            display: inline-block;
+            padding: 10px 20px;
+            margin: 5px;
+            background-color: #3498db;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            transition: background-color 0.3s;
+        }
+        .button:hover {
+            background-color: #2980b9;
+        }
+        #kline-chart, #macd-kd-chart {
+            margin-top: 20px;
+        }
+        ul {
+            list-style-type: disc;
+            margin-left: 20px;
+            margin-top: 10px;
+        }
+        details {
+            margin-top: 10px;
+        }
+        summary {
+            cursor: pointer;
+            font-size: 18px;
+            font-weight: 600;
+            color: #2c3e50;
+            padding: 10px;
+            background-color: #f0f4f8;
+            border-radius: 5px;
+        }
+        summary:hover {
+            background-color: #e0e7ef;
+        }
+        .time-selector {
+            margin-bottom: 15px;
+        }
+        .time-selector select {
+            padding: 8px;
+            font-size: 16px;
+            border-radius: 5px;
+            border: 1px solid #e0e0e0;
+        }
+    </style>
+</head>
+<body>
+    <div class="section">
+        <h1>{{ company_name }} ({{ ticker }})</h1>
+    </div>
+
+	<div class="section">
+		<h2>綜合結論</h2>
+		<div>
+			<p class="{{ conclusion.class }}">{{ conclusion.text }}</p>
+			<p>買入評分: {{ conclusion.buy_score }}</p>
+			<p>賣出評分: {{ conclusion.sell_score }}</p>
+		</div>
+		<h3>主要判斷依據：</h3>
+		<ul>
+			{% for reason in conclusion.reasons %}
+				{% if '買進' in reason or '看漲' in reason or '向上' in reason or '多頭' in reason or '黃金交叉' in reason or '金叉' in reason or '低估' in reason or '成長' in reason %}
+					<li style="color: #27ae60; font-weight: bold;">{{ reason }}</li>
+				{% elif '賣出' in reason or '看跌' in reason or '向下' in reason or '空頭' in reason or '死亡交叉' in reason or '死叉' in reason or '高估' in reason or '衰退' in reason %}
+					<li style="color: #c0392b; font-weight: bold;">{{ reason }}</li>
+				{% else %}
+					<li>{{ reason }}</li>
+				{% endif %}
+			{% endfor %}
+		</ul>
+	</div>>
+
+    <div class="section">
+        <h2>K 線圖與技術分析</h2>
+        <div class="time-selector">
+            <label>選擇顯示天數：</label>
+            <select onchange="location = '/stock/{{ ticker }}?days=' + this.value;">
+                <option value="20" {% if selected_days == 20 %}selected{% endif %}>20 天</option>
+                <option value="60" {% if selected_days == 60 %}selected{% endif %}>60 天</option>
+                <option value="120" {% if selected_days == 120 %}selected{% endif %}>120 天</option>
+            </select>
+        </div>
+        <div id="kline-chart"></div>
+        <div id="macd-kd-chart"></div>
+        <script>
+            var kline_graph = {{ kline_json | safe }};
+            var macd_kd_graph = {{ macd_kd_json | safe }};
+            Plotly.newPlot('kline-chart', kline_graph.data, kline_graph.layout);
+            Plotly.newPlot('macd-kd-chart', macd_kd_graph.data, macd_kd_graph.layout);
+        </script>
+    </div>
+
+	<div class="section">
+		<h2>最新 K 線型態分析（最近15根K線）</h2>
+		{% if kline_analysis %}
+			<table class="analysis-table">
+				<tr>
+					<th>日期</th>
+					<th>型態</th>
+					<th>建議</th>
+				</tr>
+				{% for signal in kline_analysis %}
+					<tr class="{% if signal.score > 0 %}bullish{% elif signal.score < 0 %}bearish{% endif %}">
+						<td>{{ signal.date }}</td>
+						<td>{{ signal.signal }}</td>
+						<td>{{ signal.recommendation }}</td>
+					</tr>
+				{% endfor %}
+			</table>
+		{% else %}
+			<p>最近15根K線內無明顯型態訊號。</p>
+		{% endif %}
+	</div>
+	<div class="section">
+		<h2>趨勢型態分析</h2>
+		{% if trend_patterns %}
+			<table class="analysis-table">
+				<tr>
+					<th>型態名稱</th>
+					<th>評分</th>
+					<th>說明</th>
+				</tr>
+				{% for pattern_name, (score, description) in trend_patterns.items() %}
+					<tr class="{% if score > 0 %}bullish{% elif score < 0 %}bearish{% endif %}">
+						<td>{{ pattern_name }}</td>
+						<td>{% if score > 0 %}+{{ score }}{% else %}{{ score }}{% endif %}</td>
+						<td>{{ description }}</td>
+					</tr>
+				{% endfor %}
+			</table>
+		{% else %}
+			<p>目前未偵測到明確的趨勢型態。</p>
+		{% endif %}
+	</div>
+	
+	<div class="section">
+		<h2>估值分析報告</h2>
+		{% if valuation_details %}
+			<div style="margin-bottom: 20px;">
+				<h3>當前股價：{{ valuation_details['當前股價'] }}</h3>
+			</div>
+			
+			{% for method_name, method_result in valuation_details['估值方法'].items() %}
+			<div style="margin-bottom: 20px; padding: 15px; background-color: #f9f9f9; border-radius: 5px;">
+				<h3>{{ method_name }}</h3>
+				<table class="analysis-table">
+					<tr>
+						<td><strong>合理價值</strong></td>
+						<td>{{ method_result['合理價值'] }}</td>
+					</tr>
+					<tr>
+						<td><strong>評估結論</strong></td>
+						<td class="{% if method_result['評估結論'] == '低估' %}bullish{% elif method_result['評估結論'] == '高估' %}bearish{% endif %}">
+							{{ method_result['評估結論'] }}
+						</td>
+					</tr>
+					{% if method_result.get('價差') %}
+					<tr>
+						<td><strong>價差</strong></td>
+						<td>{{ method_result['價差'] }}</td>
+					</tr>
+					{% endif %}
+					<tr>
+						<td><strong>計算說明</strong></td>
+						<td>{{ method_result['計算說明'] }}</td>
+					</tr>
+					{% if method_result.get('使用資料') %}
+					<tr>
+						<td><strong>使用資料</strong></td>
+						<td>
+							{% for key, value in method_result['使用資料'].items() %}
+								{{ key }}: {{ value }}<br>
+							{% endfor %}
+						</td>
+					</tr>
+					{% endif %}
+				</table>
+			</div>
+			{% endfor %}
+			
+			<div style="margin-top: 20px; padding: 15px; background-color: #e6f3ff; border-radius: 5px;">
+				<h3>{{ valuation_details['綜合結論'] }}</h3>
+			</div>
+		{% else %}
+			<p>估值分析資料不足。</p>
+		{% endif %}
+	</div>
+	
+
+    <div class="section">
+        <h2>基本面估值分析</h2>
+        {% if fundamental_analysis and fundamental_analysis is mapping %}
+            <table class="analysis-table">
+                <tr>
+                    <th>項目</th>
+                    <th>值</th>
+                </tr>
+                {% for key, value in fundamental_analysis.items() %}
+                    <tr>
+                        <td>{{ key }}</td>
+                        <td>{{ value }}</td>
+                    </tr>
+                {% endfor %}
+            </table>
+        {% else %}
+            <p>無可用基本面估值分析。</p>
+        {% endif %}
+    </div>
+
+    <div class="section">
+        <details>
+            <summary>K 線型態說明</summary>
+            <table class="pattern-table">
+                <tr>
+                    <th>型態</th>
+                    <th>描述</th>
+                    <th>意義</th>
+                    <th>適用情境</th>
+                </tr>
+                <tr class="bullish">
+                    <td>看漲吞噬</td>
+                    <td>下跌趨勢中，陽線完全包覆前一根陰線，顯示買方力量增強。</td>
+                    <td>空頭力量減弱，可能反轉向上，建議買進。</td>
+                    <td>股價下跌後，於支撐位出現，確認買盤進場。</td>
+                </tr>
+                <tr class="bullish">
+                    <td>刺透線</td>
+                    <td>下跌趨勢中，陽線開盤低於前陰線收盤，收盤超過前陰線中點。</td>
+                    <td>賣壓減弱，買方反攻，預示反彈或反轉。</td>
+                    <td>下跌趨勢底部，搭配其他指標確認買點。</td>
+                </tr>
+                <tr class="bullish">
+                    <td>早晨之星</td>
+                    <td>三根K線：長陰線、小實體K線、長陽線，陽線收盤高於第一根開盤價。</td>
+                    <td>空頭結束，多頭主導，強烈反轉訊號。</td>
+                    <td>重要支撐位，適合積極買進。</td>
+                </tr>
+                <tr class="bullish">
+                    <td>紅三兵</td>
+                    <td>三根連續陽線，每根收盤價更高，顯示強烈買盤。</td>
+                    <td>強烈上漲動能，可能持續上行。</td>
+                    <td>底部反轉或盤整後，注意成交量放大。</td>
+                </tr>
+                <tr class="bullish">
+                    <td>上升三法</td>
+                    <td>五根K線：長陽線、三根小陰線、長陽線，後陽線高於首陽線。</td>
+                    <td>上漲趨勢中短暫回檔後續漲，確認多頭力量。</td>
+                    <td>上漲趨勢中，確認繼續持有多頭。</td>
+                </tr>
+                <tr class="bullish">
+                    <td>三內升勢</td>
+                    <td>三根K線：陰線、陽線（實體在前陰線內）、長陽線高於前陰線開盤。</td>
+                    <td>下跌後買方反攻，預示反轉向上。</td>
+                    <td>下跌趨勢末期，確認反轉買點。</td>
+                </tr>
+                <tr class="bullish">
+                    <td>夾陽線</td>
+                    <td>陰線後，陽線實體在前陰線實體內，顯示買方反擊。</td>
+                    <td>賣壓減弱，可能反轉，較溫和買進訊號。</td>
+                    <td>下跌趨勢中，搭配其他訊號確認。</td>
+                </tr>
+                <tr class="bullish">
+                    <td>三空白</td>
+                    <td>三根陽線，每根開盤高於前根收盤，形成連續跳空。</td>
+                    <td>強烈多頭動能，預示持續上漲。</td>
+                    <td>強勢上漲初期，注意過熱風險。</td>
+                </tr>
+                <tr class="bearish">
+                    <td>看跌吞噬</td>
+                    <td>上漲趨勢中，陰線完全包覆前陽線，顯示賣方力量增強。</td>
+                    <td>多頭力量減弱，可能反轉向下，建議賣出。</td>
+                    <td>股價上漲後，於阻力位出現，確認賣壓。</td>
+                </tr>
+                <tr class="bearish">
+                    <td>烏雲蓋頂</td>
+                    <td>上漲趨勢中，陰線開盤高於前陽線收盤，收盤低於前陽線中點。</td>
+                    <td>買壓減弱，賣方反攻，預示下跌或回檔。</td>
+                    <td>上漲趨勢頂部，搭配其他指標確認賣點。</td>
+                </tr>
+                <tr class="bearish">
+                    <td>黃昏之星</td>
+                    <td>三根K線：長陽線、小實體K線、陰線，陰線收盤低於第一根開盤價。</td>
+                    <td>多頭結束，空頭主導，強烈反轉訊號。</td>
+                    <td>重要阻力位，適合積極賣出。</td>
+                </tr>
+                <tr class="bearish">
+                    <td>黑三鴉</td>
+                    <td>三根連續陰線，每根收盤價更低，顯示強烈賣盤。</td>
+                    <td>強烈下跌動能，可能持續下行。</td>
+                    <td>頂部反轉或盤整後，注意成交量放大。</td>
+                </tr>
+                <tr class="bearish">
+                    <td>下降三法</td>
+                    <td>五根K線：長陰線、三根小陽線、長陰線，後陰線低於首陰線。</td>
+                    <td>下跌趨勢中短暫反彈後續跌，確認空頭力量。</td>
+                    <td>下跌趨勢中，確認繼續持有空頭。</td>
+                </tr>
+                <tr class="bearish">
+                    <td>三內下降勢</td>
+                    <td>三根K線：陽線、陰線（實體在前陽線內）、長陰線低於前陽線開盤。</td>
+                    <td>上漲後賣方反攻，預示反轉向下。</td>
+                    <td>上漲趨勢末期，確認反轉賣點。</td>
+                </tr>
+                <tr class="bearish">
+                    <td>夾陰線</td>
+                    <td>陽線後，陰線實體在前陽線實體內，顯示賣方反擊。</td>
+                    <td>買壓減弱，可能反轉，較溫和賣出訊號。</td>
+                    <td>上漲趨勢中，搭配其他訊號確認。</td>
+                </tr>
+                <tr class="bearish">
+                    <td>三空黑</td>
+                    <td>三根陰線，每根開盤低於前根收盤，形成連續跳空。</td>
+                    <td>強烈空頭動能，預示持續下跌。</td>
+                    <td>強勢下跌初期，注意超賣風險。</td>
+                </tr>
+            </table>
+        </details>
+    </div>
+<!-- 在頁面底部的詳細說明區塊中新增： -->
+	<div class="section">
+		<details>
+			<summary>趨勢型態說明</summary>
+			<table class="pattern-table">
+				<tr>
+					<th>型態類型</th>
+					<th>型態名稱</th>
+					<th>描述</th>
+					<th>交易建議</th>
+				</tr>
+				<tr class="bullish">
+					<td rowspan="4">反轉型態</td>
+					<td>頭肩底</td>
+					<td>三個低點，中間最低，預示底部反轉</td>
+					<td>突破頸線買進</td>
+				</tr>
+				<tr class="bearish">
+					<td>頭肩頂</td>
+					<td>三個高點，中間最高，預示頂部反轉</td>
+					<td>跌破頸線賣出</td>
+				</tr>
+				<tr class="bullish">
+					<td>雙重底</td>
+					<td>兩個相近的低點，形成W型態</td>
+					<td>突破中間高點買進</td>
+				</tr>
+				<tr class="bearish">
+					<td>雙重頂</td>
+					<td>兩個相近的高點，形成M型態</td>
+					<td>跌破中間低點賣出</td>
+				</tr>
+				<tr class="bullish">
+					<td rowspan="5">延續型態</td>
+					<td>上升三角形</td>
+					<td>低點逐漸墊高，高點水平</td>
+					<td>突破上緣買進</td>
+				</tr>
+				<tr class="bearish">
+					<td>下降三角形</td>
+					<td>高點逐漸降低，低點水平</td>
+					<td>跌破下緣賣出</td>
+				</tr>
+				<tr class="bullish">
+					<td>多頭旗型</td>
+					<td>急漲後的向下傾斜整理</td>
+					<td>突破旗型上緣買進</td>
+				</tr>
+				<tr class="bearish">
+					<td>空頭旗型</td>
+					<td>急跌後的向上傾斜整理</td>
+					<td>跌破旗型下緣賣出</td>
+				</tr>
+				<tr>
+					<td>矩形</td>
+					<td>價格在水平區間震盪</td>
+					<td>突破方向交易</td>
+				</tr>
+			</table>
+		</details>
+	</div>
+	
+	<div class="section">
+		<details>
+			<summary>估值方法說明</summary>
+			<table class="pattern-table">
+				<tr>
+					<th>估值方法</th>
+					<th>計算公式</th>
+					<th>適用情況</th>
+					<th>優缺點</th>
+				</tr>
+				<tr>
+					<td>P/E 估值法</td>
+					<td>合理價值 = EPS × 合理本益比</td>
+					<td>有穩定獲利的成熟公司</td>
+					<td>優點：簡單直觀<br>缺點：忽略成長性</td>
+				</tr>
+				<tr>
+					<td>DDM 股利折現</td>
+					<td>V = D₁ / (r - g)</td>
+					<td>穩定配息的公司</td>
+					<td>優點：考慮現金流<br>缺點：對成長率敏感</td>
+				</tr>
+				<tr>
+					<td>DCF 現金流折現</td>
+					<td>V = Σ FCF/(1+r)ⁿ + TV/(1+r)ⁿ</td>
+					<td>所有公司（理論上）</td>
+					<td>優點：最全面<br>缺點：假設較多</td>
+				</tr>
+			</table>
+		</details>
+	</div>
+
+    <div class="section">
+        <a href="/" class="button">回首頁</a>
+        <a href="/stock/{{ ticker }}" class="button">重新載入分析</a>
+    </div>
+</body>
+</html>

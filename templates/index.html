@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <title>股票分析儀表板</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #f8f9fa; }
+        .card { box-shadow: 0 4px 8px 0 rgba(0,0,0,0.1); border: none; }
+        .table-hover tbody tr:hover {
+            background-color: #e9ecef;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-5">
+        <h1 class="mb-4 text-center">股票分析儀表板</h1>
+        <div class="card">
+            <div class="card-body">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>公司名稱</th>
+                            <th>股票代號</th>
+                            <th>目前股價</th>
+                            <th>本益比 (PE)</th>
+                            <th>推薦操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in summary %}
+                        <tr onclick="window.location.href='/stock/{{ item.ticker }}';">
+                            <td>{{ item.name }}</td>
+                            <td>{{ item.ticker }}</td>
+                            <td>{{ item.price }}</td>
+                            <td>{{ item.pe }}</td>
+                            <td>
+								{% if item.conclusion_class == "conclusion-buy" %}
+									<span class="badge bg-success">買入</span>
+								{% elif item.conclusion_class == "conclusion-hold" %}
+									<span class="badge bg-warning text-dark">觀望</span>
+								{% elif item.conclusion_class == "conclusion-sell" %}
+									<span class="badge bg-danger">賣出</span>
+								{% else %}
+									<span class="text-muted">-</span>
+								{% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <footer class="text-center text-muted mt-4">
+            <p>資料來源：Yahoo Finance。此工具僅供學術研究與技術展示，不構成任何投資建議。</p>
+        </footer>
+    </div>
+</body>
+</html>
