@@ -13,7 +13,7 @@ Dependencies: Listed in requirements.txt
 **Installation**
 Manual Installation (Python)
 
-Clone the repository: git clone https://github.com/yourusername/stock_analyzer.git
+Clone the repository: git clone https://github.com/dairong-wu/stock-analyzer.git
 Navigate to the project folder: cd stock_analyzer
 Install dependencies: pip install -r requirements.txt
 Ensure Python is added to your system PATH.
