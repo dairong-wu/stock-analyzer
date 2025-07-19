@@ -1,0 +1,10 @@
+{
+  "TICKERS": {
+    "NVIDIA": "NVDA",
+    "台積電": "2330.TW",
+    "聯電": "2303.TW",
+    "鴻海": "2317.TW",
+    "TESLA": "TSLA"
+  },
+  "DB_FILE": "C:\\Users\\jeffy\\Desktop\\stock_analyzer_v2\\dist\\stock_data.db"
+}
